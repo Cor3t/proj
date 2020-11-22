@@ -9,7 +9,9 @@ class _SearchBarState extends State<SearchBar> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {},
+      onTap: () {
+        showSearch(context: context, delegate: DataSearch());
+      },
       child: Container(
           width: MediaQuery.of(context).size.width - 10,
           height: 50,
@@ -57,13 +59,11 @@ class DataSearch extends SearchDelegate {
     final suggestionList = query.isEmpty ? recentPlaces : places;
 
     return ListView.builder(
-      itemBuilder: (context, index) {
-        return ListTile(
-          leading: Icon(Icons.location_city),
-          title: Text(suggestionList[index])
-        );
-      },
-      itemCount: suggestionList.length
-    );
+        itemBuilder: (context, index) {
+          return ListTile(
+              leading: Icon(Icons.location_city),
+              title: Text(suggestionList[index]));
+        },
+        itemCount: suggestionList.length);
   }
 }
