@@ -4,12 +4,14 @@ import 'package:mua/services/cordinate_cal.dart';
 import 'places_info.dart';
 import 'direction_time.dart';
 import 'location_botton.dart';
+import 'searchbar.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_controller/google_maps_controller.dart';
 
 String googleApiKey = 'AIzaSyBkDzDscbwtGtK9Py_vAj5BCRaLDhx2Xjc';
+const int durationSeconds = 500;
 
 class HomePage extends StatefulWidget {
   @override
@@ -17,7 +19,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool showSearchBar = true;
+  String searchText = 'Search here';
+  IconData icon = Icons.error;
   String _cordinateDistance = '';
+  String _cordinateTime = '';
   PolylinePoints polylinePoints;
   List<LatLng> polylineCoordinates = [];
   Map<PolylineId, Polyline> polylines = {};
@@ -51,14 +57,31 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  Future<void> _createPolylines(LatLng start, LatLng destination) async {
+  Future<void> _createPolylines(
+      LatLng start, LatLng destination, String mode) async {
+    PolylineResult result;
     polylinePoints = PolylinePoints();
+    double totalDistance = 0.0;
+    double totalTime = 0.0;
+    const averagePersonSpeed = 1.36;
+    const averageKekeSpeed = 11;
+    const convertKiloMeter = 1000;
+    Polyline polyline;
+    IconData modeIcon;
 
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey,
-        PointLatLng(start.latitude, start.longitude),
-        PointLatLng(destination.latitude, destination.longitude),
-        travelMode: TravelMode.walking);
+    if (mode == 'walking') {
+      result = await polylinePoints.getRouteBetweenCoordinates(
+          googleApiKey,
+          PointLatLng(start.latitude, start.longitude),
+          PointLatLng(destination.latitude, destination.longitude),
+          travelMode: TravelMode.walking);
+    } else if (mode == 'keke') {
+      result = await polylinePoints.getRouteBetweenCoordinates(
+          googleApiKey,
+          PointLatLng(start.latitude, start.longitude),
+          PointLatLng(destination.latitude, destination.longitude),
+          travelMode: TravelMode.driving);
+    }
 
     polylineCoordinates.clear();
     if (result.points.isNotEmpty) {
@@ -69,16 +92,23 @@ class _HomePageState extends State<HomePage> {
 
     PolylineId id = PolylineId('poly');
 
-    Polyline polyline = Polyline(
-        polylineId: id,
-        color: Colors.blue,
-        points: polylineCoordinates,
-        width: 6);
+    if (mode == 'walking') {
+      polyline = Polyline(
+          polylineId: id,
+          color: Colors.blue,
+          points: polylineCoordinates,
+          patterns: [PatternItem.dot],
+          width: 6);
+    } else if (mode == 'keke') {
+      polyline = Polyline(
+          polylineId: id,
+          color: Colors.blue,
+          points: polylineCoordinates,
+          width: 7);
+    }
 
     polylines[id] = polyline;
     _controller.addPolyline(polyline);
-
-    double totalDistance = 0.0;
 
 // Calculating the total distance by adding the distance
 // between small segments
@@ -91,18 +121,33 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
+    //Calculating the total time
+    if (mode == 'walking') {
+      totalTime =
+          ((totalDistance * convertKiloMeter) / averagePersonSpeed) / 60;
+      modeIcon = Icons.directions_walk;
+    } else if (mode == 'keke') {
+      totalTime = ((totalDistance * convertKiloMeter) / averageKekeSpeed) / 60;
+      modeIcon = Icons.directions_car;
+    }
 // Storing the calculated total distance of the route
     setState(() {
       _cordinateDistance = totalDistance.toStringAsFixed(2);
-      print('DISTANCE: $_cordinateDistance km');
+      _cordinateTime = totalTime.toStringAsFixed(0);
+      icon = modeIcon;
     });
   }
 
   void changeWidget() {
     setState(() {
+      showSearchBar = !showSearchBar;
       _markerTap = !_markerTap;
       _myAnimatedWidget = _notChanged
-          ? DirectionTimer(press: putMarkers, text: _cordinateDistance)
+          ? DirectionTimer(
+              press: putMarkers,
+              time: _cordinateTime,
+              distance: _cordinateDistance,
+              icon: icon)
           : BuildFloatingActionButton(press: _getCurrentLocation);
       _notChanged = !_notChanged;
     });
@@ -121,25 +166,34 @@ class _HomePageState extends State<HomePage> {
         zoom: 18)));
   }
 
-  RaisedButton directionButton(String title, LatLng destination) {
-    return RaisedButton(
-        child: Text(
-          'Direction',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-        onPressed: () async {
-          await _createPolylines(
-              LatLng(currentPosition.latitude, currentPosition.longitude),
-              destination);
-          animateDirection();
-          changeWidget();
-          _controller.removeMarkers(_markers.where((element) {
-            return element.markerId.value != title;
-          }).toList());
-          Navigator.of(context).pop();
-        },
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        color: Colors.blue);
+  void getDirection(
+      LatLng start, LatLng destination, String text, String mode) async {
+    await _createPolylines(start, destination, mode);
+    animateDirection();
+    changeWidget();
+    _controller.removeMarkers(_markers.where((element) {
+      return element.markerId.value != text;
+    }).toList());
+    Navigator.of(context).pop();
+  }
+
+  Widget button(BuildContext context, LatLng start, LatLng destination,
+      String mode, String text) {
+    return Container(
+      height: 40,
+      width: 130,
+      child: RaisedButton(
+          child: Text(
+            mode,
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: () {
+            getDirection(start, destination, text, mode);
+          },
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          color: Colors.blue),
+    );
   }
 
   void putMarkers() {
@@ -148,6 +202,24 @@ class _HomePageState extends State<HomePage> {
     _controller.addMarkers(_markers.toList());
     animateNormal();
     _controller.removePolylines(polylines.values.toList());
+  }
+
+  void showSearchPage(BuildContext context, DataSearch searchDelegate) async {
+    GoogleMapController _animateControl = await _completer.future;
+    final String selected =
+        await showSearch(context: context, delegate: searchDelegate);
+
+    if (selected != null) {
+      for (var info in data) {
+        if (info.title == selected) {
+          setState(() {
+            searchText = selected;
+          });
+          _animateControl.animateCamera(CameraUpdate.newCameraPosition(
+              CameraPosition(target: info.position, zoom: _zoomValue)));
+        }
+      }
+    }
   }
 
   void placeMarkers() {
@@ -159,9 +231,22 @@ class _HomePageState extends State<HomePage> {
               ? () {
                   Scaffold.of(context).showBottomSheet((context) {
                     return PlacesInfo(
-                        title: info.title,
-                        press: changeWidget,
-                        button: directionButton(info.title, info.position));
+                      title: info.title,
+                      button1: button(
+                          context,
+                          LatLng(currentPosition.latitude,
+                              currentPosition.longitude),
+                          info.position,
+                          'walking',
+                          info.title),
+                      button2: button(
+                          context,
+                          LatLng(currentPosition.latitude,
+                              currentPosition.longitude),
+                          info.position,
+                          'keke',
+                          info.title),
+                    );
                   });
                 }
               : null,
@@ -197,13 +282,51 @@ class _HomePageState extends State<HomePage> {
         body: Stack(
       children: [
         GoogleMaps(controller: _controller),
+        AnimatedPositioned(
+            top: showSearchBar ? 30 : -100,
+            left: 0,
+            right: 0,
+            duration: Duration(milliseconds: durationSeconds),
+            child: SearchBar(
+              function: () {
+                showSearchPage(context, DataSearch());
+              },
+              text: searchText,
+            )),
         Positioned(
           bottom: 0,
           right: 0,
           child: AnimatedSwitcher(
-              duration: Duration(milliseconds: 500), child: _myAnimatedWidget),
+              duration: Duration(milliseconds: durationSeconds),
+              child: _myAnimatedWidget),
         )
       ],
     ));
+  }
+}
+
+class DirectionButton extends StatelessWidget {
+  const DirectionButton(
+      {Key key, @required this.function, @required this.title})
+      : super(key: key);
+
+  final Function function;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      width: 130,
+      child: RaisedButton(
+          child: Text(
+            title,
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: function,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+          color: Colors.blue),
+    );
   }
 }

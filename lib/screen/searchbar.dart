@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mua/services/data.dart';
 
 class SearchBar extends StatefulWidget {
+  final Function function;
+  final String text;
+  SearchBar({this.function, this.text});
   _SearchBarState createState() => _SearchBarState();
 }
 
@@ -9,20 +12,26 @@ class _SearchBarState extends State<SearchBar> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        showSearch(context: context, delegate: DataSearch());
-      },
-      child: Container(
-          width: MediaQuery.of(context).size.width - 10,
-          height: 50,
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(10)),
-          child: Text('Search here')),
+      onTap: widget.function,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Container(
+            padding: EdgeInsets.all(15),
+            width: MediaQuery.of(context).size.width - 20,
+            height: 55,
+            decoration: BoxDecoration(boxShadow: [
+              BoxShadow(blurRadius: 5, color: Colors.grey, spreadRadius: 2)
+            ], color: Colors.white, borderRadius: BorderRadius.circular(15)),
+            child: Text(
+              widget.text,
+              style: TextStyle(fontSize: 20),
+            )),
+      ),
     );
   }
 }
 
-class DataSearch extends SearchDelegate {
+class DataSearch extends SearchDelegate<String> {
   static List<String> _getItems(List<Database> data) {
     List<String> items = [];
     for (var i in data) {
@@ -32,11 +41,17 @@ class DataSearch extends SearchDelegate {
   }
 
   List<String> places = _getItems(data);
-  final recentPlaces = [];
+  final recentPlaces = ['hey', 'heu'];
 
   @override
   List<Widget> buildActions(BuildContext context) {
-    return [IconButton(icon: Icon(Icons.clear), onPressed: () {})];
+    return [
+      IconButton(
+          icon: Icon(Icons.clear),
+          onPressed: () {
+            query = '';
+          })
+    ];
   }
 
   @override
@@ -44,26 +59,46 @@ class DataSearch extends SearchDelegate {
     return IconButton(
       icon: AnimatedIcon(
           icon: AnimatedIcons.menu_arrow, progress: transitionAnimation),
-      onPressed: () {},
+      onPressed: () {
+        close(context, null);
+      },
     );
   }
 
   @override
   Widget buildResults(BuildContext context) {
-    // TODO: implement buildResults
-    throw UnimplementedError();
+    return null;
   }
 
   @override
   Widget buildSuggestions(BuildContext context) {
-    final suggestionList = query.isEmpty ? recentPlaces : places;
-
-    return ListView.builder(
-        itemBuilder: (context, index) {
-          return ListTile(
+    final suggestionList = query.isEmpty
+        ? recentPlaces
+        : places.where((element) => element.startsWith(query)).toList();
+    return Container(
+      color: Colors.white,
+      child: ListView.builder(
+          itemBuilder: (context, index) {
+            return ListTile(
               leading: Icon(Icons.location_city),
-              title: Text(suggestionList[index]));
-        },
-        itemCount: suggestionList.length);
+              title: RichText(
+                text: TextSpan(
+                    text: suggestionList[index].substring(0, query.length),
+                    style: TextStyle(
+                        color: Colors.black, fontWeight: FontWeight.bold),
+                    children: [
+                      TextSpan(
+                          text: suggestionList[index].substring(query.length),
+                          style: TextStyle(color: Colors.grey))
+                    ]),
+              ),
+              onTap: () {
+                query = suggestionList[index];
+                close(context, query);
+              },
+            );
+          },
+          itemCount: suggestionList.length),
+    );
   }
 }

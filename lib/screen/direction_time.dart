@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 class DirectionTimer extends StatefulWidget {
   final Function press;
-  final String text;
-  DirectionTimer({this.press, this.text});
+  final String time;
+  final String distance;
+  final IconData icon;
+  DirectionTimer({this.press, this.time, this.distance, this.icon});
   @override
   _DirectionTimerState createState() => _DirectionTimerState();
 }
@@ -38,17 +40,56 @@ class _DirectionTimerState extends State<DirectionTimer> {
             ),
             SizedBox(width: 30),
             Container(
+              alignment: Alignment.centerLeft,
               height: 80,
-              child: Center(
-                  child: RichText(
-                      text: TextSpan(children: [
-                TextSpan(text: widget.text, style: TextStyle(fontSize: 20)),
-                TextSpan(text: ' km', style: TextStyle(fontSize: 20))
-              ]))),
+              child: Row(
+                children: [
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      DirectionText(text1: widget.time, text2: 'm', size: 30),
+                      DirectionText(
+                          text1: widget.distance, text2: 'km', size: 15),
+                    ],
+                  ),
+                  SizedBox(width: 90),
+                  Icon(
+                    widget.icon,
+                    size: 45,
+                    color: Colors.white,
+                  )
+                ],
+              ),
             )
           ],
         ),
       ),
     );
+  }
+}
+
+class DirectionText extends StatelessWidget {
+  const DirectionText(
+      {Key key,
+      @required this.text1,
+      @required this.text2,
+      @required this.size})
+      : super(key: key);
+
+  final String text1;
+  final String text2;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+        text: TextSpan(children: [
+      TextSpan(
+          text: text1, style: TextStyle(fontSize: size, color: Colors.black)),
+      TextSpan(
+          text: ' $text2',
+          style: TextStyle(fontSize: size, color: Colors.black))
+    ]));
   }
 }
