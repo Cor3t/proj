@@ -14,17 +14,23 @@ class _SearchBarState extends State<SearchBar> {
     return GestureDetector(
       onTap: widget.function,
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.all(10),
         child: Container(
             padding: EdgeInsets.all(15),
-            width: MediaQuery.of(context).size.width - 20,
+            width: MediaQuery.of(context).size.width - 25,
             height: 55,
             decoration: BoxDecoration(boxShadow: [
-              BoxShadow(blurRadius: 5, color: Colors.grey, spreadRadius: 2)
-            ], color: Colors.white, borderRadius: BorderRadius.circular(15)),
-            child: Text(
-              widget.text,
-              style: TextStyle(fontSize: 20),
+              BoxShadow(blurRadius: 2, color: Colors.grey, spreadRadius: 1)
+            ], color: Colors.white, borderRadius: BorderRadius.circular(35)),
+            child: Row(
+              children: [
+                Text(
+                  widget.text,
+                  style: TextStyle(fontSize: 20),
+                ),
+                Spacer(),
+                Icon(Icons.search)
+              ],
             )),
       ),
     );
@@ -41,7 +47,7 @@ class DataSearch extends SearchDelegate<String> {
   }
 
   List<String> places = _getItems(data);
-  final recentPlaces = ['hey', 'heu'];
+  final recentPlaces = [];
 
   @override
   List<Widget> buildActions(BuildContext context) {
@@ -93,6 +99,7 @@ class DataSearch extends SearchDelegate<String> {
                     ]),
               ),
               onTap: () {
+                recentPlaces.add(suggestionList[index]);
                 query = suggestionList[index];
                 close(context, query);
               },

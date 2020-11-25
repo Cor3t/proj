@@ -20,6 +20,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   bool showSearchBar = true;
+  BitmapDescriptor placeIcon;
   String searchText = 'Search here';
   IconData icon = Icons.error;
   String _cordinateDistance = '';
@@ -41,6 +42,13 @@ class _HomePageState extends State<HomePage> {
   void onMapCreated(GoogleMapController controller) {
     _completer.complete(controller);
     controller = controller;
+  }
+
+  Future<void> setPlaceMarker() async {
+    placeIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(devicePixelRatio: 0.2), 'assets/location.png');
+
+    placeMarkers();
   }
 
   void _getCurrentLocation() async {
@@ -104,6 +112,7 @@ class _HomePageState extends State<HomePage> {
           polylineId: id,
           color: Colors.blue,
           points: polylineCoordinates,
+          onTap: () {},
           width: 7);
     }
 
@@ -168,8 +177,10 @@ class _HomePageState extends State<HomePage> {
 
   void getDirection(
       LatLng start, LatLng destination, String text, String mode) async {
-    await _createPolylines(start, destination, mode);
-    animateDirection();
+    try {
+      await _createPolylines(start, destination, mode);
+      animateDirection();
+    } catch (e) {}
     changeWidget();
     _controller.removeMarkers(_markers.where((element) {
       return element.markerId.value != text;
@@ -215,8 +226,29 @@ class _HomePageState extends State<HomePage> {
           setState(() {
             searchText = selected;
           });
-          _animateControl.animateCamera(CameraUpdate.newCameraPosition(
+          await _animateControl.animateCamera(CameraUpdate.newCameraPosition(
               CameraPosition(target: info.position, zoom: _zoomValue)));
+          showBottomSheet(
+              context: (context),
+              builder: (context) {
+                return PlacesInfo(
+                  title: info.title,
+                  button1: button(
+                      context,
+                      LatLng(
+                          currentPosition.latitude, currentPosition.longitude),
+                      info.position,
+                      'walking',
+                      info.title),
+                  button2: button(
+                      context,
+                      LatLng(
+                          currentPosition.latitude, currentPosition.longitude),
+                      info.position,
+                      'keke',
+                      info.title),
+                );
+              });
         }
       }
     }
@@ -251,7 +283,7 @@ class _HomePageState extends State<HomePage> {
                 }
               : null,
           position: info.position,
-          icon: BitmapDescriptor.defaultMarker,
+          icon: placeIcon,
           infoWindow: InfoWindow(title: info.title));
       _markers.add(marker);
     }
@@ -260,7 +292,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    placeMarkers();
+    setPlaceMarker();
     _getCurrentLocation();
     _controller = GoogleMapsController(
         mapToolbarEnabled: false,

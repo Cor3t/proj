@@ -11,7 +11,7 @@ class PlacesInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
         child: Padding(
-      padding: const EdgeInsets.all(4.0),
+      padding: const EdgeInsets.all(10),
       child: Container(
           width: MediaQuery.of(context).size.width,
           height: 140,
@@ -32,21 +32,19 @@ class PlacesInfo extends StatelessWidget {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(title,
-                      style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 35,
-                          fontWeight: FontWeight.w500)),
-                ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(title,
+                    style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 35,
+                        fontWeight: FontWeight.w500)),
               ),
               Spacer(),
               Padding(
                 padding: EdgeInsets.all(8.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     button1,
                     SizedBox(width: 10),
